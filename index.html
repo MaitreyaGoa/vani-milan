@@ -687,6 +687,20 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
       <div class="mts" id="mTabs"><div class="mt on" onclick="mTab('login')">Login</div><div class="mt" onclick="mTab('register')">Register Free</div></div>
       <!-- LOGIN -->
       <div id="fL">
+        <!-- Demo Credentials Box -->
+        <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:14px 16px;margin-bottom:18px">
+          <p style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);margin-bottom:8px">🎯 Demo Credentials — Click to fill</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button onclick="fillDemo('user')" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(245,158,11,0.2);background:rgba(245,158,11,0.05);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;text-align:left;transition:all .2s" onmouseover="this.style.background='rgba(245,158,11,0.12)'" onmouseout="this.style.background='rgba(245,158,11,0.05)'">
+              👤 <strong style="color:var(--text)">Demo User</strong><br>
+              <span style="color:var(--text3);font-size:11px">9876543210 / Pass@1234</span>
+            </button>
+            <button onclick="fillDemo('admin')" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(225,29,72,0.2);background:rgba(225,29,72,0.05);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;text-align:left;transition:all .2s" onmouseover="this.style.background='rgba(225,29,72,0.12)'" onmouseout="this.style.background='rgba(225,29,72,0.05)'">
+              🛡️ <strong style="color:var(--text)">Admin</strong><br>
+              <span style="color:var(--text3);font-size:11px">admin@vanimilan.com / Admin@123</span>
+            </button>
+          </div>
+        </div>
         <div class="iw"><label>Mobile / Email</label><input type="text" class="inp" placeholder="Enter mobile or email" id="lId"></div>
         <div class="iw"><label>Password</label><input type="password" class="inp" placeholder="Enter password" id="lPw"></div>
         <div style="text-align:right;margin-bottom:16px"><a class="fl" style="font-size:12px" onclick="toast('Reset OTP will be sent to your mobile 📱')">Forgot password?</a></div>
@@ -743,7 +757,16 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   </div>
 </div>
 
-<!-- PROFILE DETAIL MODAL -->
+<!-- DASHBOARD MODAL (post login) -->
+<div class="mbg" id="dashModal">
+  <div class="mbox wide">
+    <div class="mh">
+      <h2 id="dashTitle">My Dashboard</h2>
+      <button class="mx" onclick="closeM('dashModal');logoutUser()">✕ Logout</button>
+    </div>
+    <div class="mb2" id="dashBody"></div>
+  </div>
+</div>
 <div class="mbg" id="profileModal">
   <div class="mbox wide">
     <div class="mh"><h2 id="pdT">Profile Details</h2><button class="mx" onclick="closeM('profileModal')">✕</button></div>
@@ -832,7 +855,117 @@ function showPL(){document.getElementById('fOL').style.display='none';document.g
 let rfC='self',grC='b';
 function setRF(v){rfC=v;['self','son','daughter'].forEach(x=>document.getElementById('rf-'+x).classList.remove('on'));document.getElementById('rf-'+v).classList.add('on')}
 function setGR(g){grC=g;document.getElementById('gB').classList.toggle('on',g==='b');document.getElementById('gG').classList.toggle('on',g==='g')}
-function doLogin(){const i=document.getElementById('lId').value,p=document.getElementById('lPw').value;if(!i||!p){toast('Please enter credentials','er');return}toast('Demo mode — login available in full version! 🚀');setTimeout(()=>closeM('authModal'),1800)}
+const DEMO_USERS = {
+  '9876543210': {pass:'Pass@1234', role:'user', name:'Priya Sharma'},
+  'user@vanimilan.com': {pass:'Pass@1234', role:'user', name:'Priya Sharma'},
+  'admin@vanimilan.com': {pass:'Admin@123', role:'admin', name:'Admin'},
+  '9999999999': {pass:'Admin@123', role:'admin', name:'Admin'},
+};
+
+function fillDemo(type) {
+  if(type==='user') {
+    document.getElementById('lId').value='9876543210';
+    document.getElementById('lPw').value='Pass@1234';
+  } else {
+    document.getElementById('lId').value='admin@vanimilan.com';
+    document.getElementById('lPw').value='Admin@123';
+  }
+  toast('Credentials filled — click Login →');
+}
+
+function doLogin() {
+  const id=document.getElementById('lId').value.trim();
+  const pw=document.getElementById('lPw').value;
+  if(!id||!pw){toast('Please enter credentials','er');return;}
+  const user = DEMO_USERS[id];
+  if(!user){toast('Mobile/email not registered in demo','er');return;}
+  if(user.pass!==pw){toast('Incorrect password. Check demo credentials above.','er');return;}
+  setTimeout(()=>{closeM('authModal');showDashboard(user);},600);
+  toast('Logging in...','ok');
+}
+
+let currentUser=null;
+function showDashboard(user){
+  currentUser=user;
+  document.querySelector('.nc').innerHTML=`
+    <span style="font-size:13px;color:var(--text2);padding:0 4px">👋 ${user.name}</span>
+    <button class="btn btn-g btn-sm" onclick="openDash()">Dashboard</button>
+    <button class="btn btn-p btn-sm" onclick="logoutUser()">Logout</button>`;
+  openDash();
+}
+function logoutUser(){
+  currentUser=null;
+  document.querySelector('.nc').innerHTML=`
+    <button class="btn btn-g btn-sm" onclick="openM('login')">Login</button>
+    <button class="btn btn-p btn-sm" onclick="openM('register')">Register Free →</button>`;
+  toast('Logged out successfully');
+}
+function openDash(){
+  if(!currentUser){openM('login');return;}
+  const isAdmin=currentUser.role==='admin';
+  document.getElementById('dashTitle').textContent=isAdmin?'🛡️ Admin Dashboard':'👤 My Dashboard';
+  document.getElementById('dashBody').innerHTML=isAdmin?buildAdminDash():buildUserDash();
+  document.getElementById('dashModal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function buildUserDash(){
+  return `<div style="background:linear-gradient(135deg,rgba(225,29,72,.15),rgba(124,58,237,.1));border:1px solid rgba(225,29,72,.2);border-radius:18px;padding:22px;margin-bottom:18px">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+      <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#9F1239,#7C3AED);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:22px;color:#fff;flex-shrink:0">P</div>
+      <div><h3 style="font-family:'DM Serif Display',serif;font-size:1.2rem">Priya Sharma</h3><p style="font-size:12px;color:var(--text3)">Profile ID: VM-10021 · Member since May 2025</p>
+      <div style="display:flex;gap:6px;margin-top:5px"><span class="tag tag-g" style="font-size:10px">✓ Mobile Verified</span><span class="tag tag-a" style="font-size:10px">Free Plan</span></div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.06em;text-transform:uppercase">Profile Completion</span><span style="font-size:13px;font-weight:700;color:var(--amber)">65%</span></div>
+    <div style="height:5px;background:rgba(255,255,255,.07);border-radius:100px;overflow:hidden"><div style="width:65%;height:100%;background:linear-gradient(90deg,var(--rose),var(--amber));border-radius:100px"></div></div>
+    <p style="font-size:11px;color:var(--text3);margin-top:7px">Add horoscope details & photos to reach 100%</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px">
+    ${[['💌','Sent','3'],['📨','Received','7'],['🔖','Saved','5'],['👁️','Views','124']].map(([ic,lb,v])=>`<div style="background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:13px;padding:14px 10px;text-align:center"><div style="font-size:20px;margin-bottom:5px">${ic}</div><div style="font-size:1.3rem;font-weight:800;font-family:'DM Serif Display',serif">${v}</div><div style="font-size:11px;color:var(--text3);margin-top:1px">${lb}</div></div>`).join('')}
+  </div>
+  <div style="background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:13px;padding:16px;margin-bottom:14px">
+    <h4 style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:12px">Recent Interests Received</h4>
+    ${[['Rahul M.','29, Mumbai, Engineer','Pending','#1e1b4b,#2563eb'],['Vivek A.','31, Surat, CA','Pending','#78350F,#B45309'],['Nikhil V.','28, Indore, PM','Accepted','#0F2040,#1D4ED8']].map(([n,d,s,bg])=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,${bg});display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff">${n[0]}</div>
+        <div><p style="font-size:13px;font-weight:600">${n}</p><p style="font-size:11px;color:var(--text3)">${d}</p></div>
+      </div>
+      <div style="display:flex;gap:5px">
+        ${s==='Accepted'?`<span class="tag tag-g" style="font-size:10px">✓ Accepted</span>`:`<button onclick="toast('Interest accepted! ✓','ok')" style="padding:4px 10px;border-radius:7px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:#4ADE80;font-size:11px;font-weight:700;cursor:pointer">Accept</button><button onclick="toast('Interest declined')" style="padding:4px 10px;border-radius:7px;background:rgba(225,29,72,.08);border:1px solid rgba(225,29,72,.2);color:#FB7185;font-size:11px;font-weight:700;cursor:pointer">Decline</button>`}
+      </div>
+    </div>`).join('')}
+  </div>
+  <div style="background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(225,29,72,.08));border:1px solid rgba(245,158,11,.25);border-radius:13px;padding:16px;text-align:center">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px">🔓 Upgrade to Premium — Unlock contacts & send unlimited interests</p>
+    <button class="btn btn-a" style="border-radius:11px;font-size:13px" onclick="toast('Premium available after full launch! 🚀')">Upgrade Now — ₹999/3 months</button>
+  </div>`;
+}
+function buildAdminDash(){
+  return `<div style="background:linear-gradient(135deg,rgba(225,29,72,.12),rgba(124,58,237,.08));border:1px solid rgba(225,29,72,.2);border-radius:18px;padding:20px;margin-bottom:18px;display:flex;align-items:center;gap:14px">
+    <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--rose),var(--purple));display:flex;align-items:center;justify-content:center;font-size:20px">🛡️</div>
+    <div><h3 style="font-family:'DM Serif Display',serif;font-size:1.15rem">Admin Panel</h3><p style="font-size:12px;color:var(--text3)">admin@vanimilan.com · Super Admin</p></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px">
+    ${[['👥','Total Users','5,284'],['✅','Approved','4,901'],['⏳','Pending','23'],['💎','Premium','812'],['💌','Interests','18,440'],['💑','Matches','803']].map(([ic,lb,v])=>`<div style="background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:13px;padding:14px;text-align:center"><div style="font-size:18px;margin-bottom:5px">${ic}</div><div style="font-size:1.2rem;font-weight:800;font-family:'DM Serif Display',serif">${v}</div><div style="font-size:11px;color:var(--text3);margin-top:1px">${lb}</div></div>`).join('')}
+  </div>
+  <div style="background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:13px;padding:16px;margin-bottom:14px">
+    <h4 style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:12px">⏳ Pending Approvals</h4>
+    ${[['Anjali Joshi','25, Pune, Teacher','2h ago','#9F1239,#7C3AED'],['Karan Shah','30, Mumbai, Business','4h ago','#064E3B,#065F46'],['Meeta Agarwal','27, Jaipur, MBA','6h ago','#78350F,#B45309']].map(([n,d,t,bg])=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,${bg});display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff">${n[0]}</div>
+        <div><p style="font-size:13px;font-weight:600">${n}</p><p style="font-size:11px;color:var(--text3)">${d} · ${t}</p></div>
+      </div>
+      <div style="display:flex;gap:5px">
+        <button onclick="toast('✅ Profile approved!','ok')" style="padding:4px 10px;border-radius:7px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:#4ADE80;font-size:11px;font-weight:700;cursor:pointer">Approve</button>
+        <button onclick="toast('Profile rejected')" style="padding:4px 10px;border-radius:7px;background:rgba(225,29,72,.08);border:1px solid rgba(225,29,72,.2);color:#FB7185;font-size:11px;font-weight:700;cursor:pointer">Reject</button>
+      </div>
+    </div>`).join('')}
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+    ${[['📢','Events','Add/edit community events'],['💬','Stories','Publish couple stories'],['💰','Payments','View subscription history'],['📊','Analytics','User & match insights']].map(([ic,t,s])=>`<div onclick="toast('${t} panel — available in full version')" style="background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:13px;padding:14px;cursor:pointer;transition:background .2s" onmouseover="this.style.background='rgba(255,255,255,.07)'" onmouseout="this.style.background='rgba(255,255,255,.04)'"><span style="font-size:18px;display:block;margin-bottom:7px">${ic}</span><p style="font-size:13px;font-weight:700;margin-bottom:2px">${t}</p><p style="font-size:11px;color:var(--text3)">${s}</p></div>`).join('')}
+  </div>`;
+}
 function sendOTP(){const m=document.getElementById('olM').value;if(m.length!==10){toast('Enter valid 10-digit mobile','er');return}document.getElementById('oSec').style.display='block';toast('OTP sent! Demo OTP: 123456 ✓','ok')}
 function verOTP(mode){
   const sel=mode==='login'?'#fOL .orow input':'#fOV .orow input';
